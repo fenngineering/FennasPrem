@@ -287,27 +287,15 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
-# Laterooms build specific
-build/
-/build.zip
-/Laterooms_RollbakScript.sql
-/Laterooms_DeployScript.sql
-/Global.SqlServer/bin/Debug
-/Global.SqlServer/obj
-/LateRooms.SqlServer
 *.dbmdl
-/AffiliateExtracts/obj/Development
-/AffiliateExtracts/bin/Development
-/Laterooms.AffiliateInvoicing.SqlTests/obj/Debug
 bin/
 obj/
 *.user
-/AffiliateInvoicing/AffiliateInvoicing.dtproj.user
 .vs/
 *.suo
 *.userosscache
 *.sln.docstates
 *.sln.targets
 version/
-/Laterooms_Laterooms_DeployScript.sql
-/Laterooms_Global.SqlServer_DeployScript.sql
+*.tar
+FennasPrem.Web/App_Data/*

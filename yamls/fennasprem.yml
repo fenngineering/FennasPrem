@@ -1,0 +1,202 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-configuration
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: >
+      {"apiVersion":"v1","kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"ingress-nginx","app.kubernetes.io/part-of":"ingress-nginx"},"name":"nginx-configuration","namespace":"ingress-nginx"}}
+data:
+  client-header-buffer-size: 64k
+  http2-max-field-size: 16k
+  http2-max-header-size: 128k
+  large-client-header-buffers: 8 64k
+  proxy-body-size: 4096M
+  proxy-buffer-size: 128k
+  proxy-buffers: 4 256k
+  proxy-busy-buffers-size: 256k
+  proxy-hide-headers: Server
+  server-tokens: 'False'
+  use-forwarded-headers: 'true'
+  use-forwarded-host-header: 'true'
+  use-proxy-protocol: 'false'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-credentials
+  namespace: default
+type: Opaque
+data:
+  password: 'VGVkZHkxMjM0IQ=='
+---
+apiVersion: v1
+data:
+  redis-config: |
+    maxmemory 1G
+    maxmemory-policy allkeys-lru
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: default
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: app-data-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany 
+  hostPath:
+    path: "/mnt/app-data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany 
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fennasprem
+replicas: 1
+spec:
+  selector:
+    matchLabels:
+      app: fennasprem
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: fennasprem
+    spec:
+      containers:
+        - image: redis
+          name: redis          
+          command: ["/bin/sh","-c"]
+          args: ["redis-server /redis-master/redis.conf --requirepass $(REDIS_HOST_PASSWORD)"]
+          env:
+          - name: REDIS_HOST_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: redis-credentials
+                key: password
+          - name: MASTER
+            value: "true"
+          ports:
+            - containerPort: 6379
+              name: redis
+              protocol: TCP
+          volumeMounts:
+            - name: redis-config
+              mountPath: /redis-master       
+            - name: redis-data
+              mountPath: /redis-master-data
+        - image: fennasprem:latest
+          imagePullPolicy: IfNotPresent 
+          name: fennasprem
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ORCHARD_APP_DATA
+              value: /app/App_Data
+            - name: REDIS_HOST
+              value: localhost
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: password
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: "/app/App_Data"
+              name: app-data-pv-storage
+      volumes:        
+        - name: app-data-pv-storage
+          persistentVolumeClaim:
+            claimName: app-data-pv-claim
+        - name: redis-data
+          emptyDir: {}
+        - name: redis-config
+          configMap:
+            name: redis-config
+            items:
+            - key: redis-config
+              path: redis.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fennasprem-service
+  annotations:
+    metallb.universe.tf/address-pool: default
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: fennasprem
+  type: LoadBalancer
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: fennasprem-service
+spec:
+  selector:
+    app: fennasprem
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80 
+  - protocol: TCP
+    port: 443
+    targetPort: 433  
+---
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: fennasprem-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "nginx"    
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - fennasprem.co.uk
+    - gosql.co.uk
+    secretName: letsencrypt-prod
+  rules:
+    - host: fennasprem.co.uk
+      http:
+        paths:
+          - backend:
+              serviceName: fennasprem-service
+              servicePort: 443
+    - host: gosql.co.uk
+      http:
+        paths:
+          - backend:
+              serviceName: fennasprem-service
+              servicePort: 443
+---

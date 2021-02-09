@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using OrchardCore.Logging;
 
 namespace FennasPrem.Web
 {
@@ -11,8 +12,10 @@ namespace FennasPrem.Web
 
         public static IHost BuildHost(string[] args)
             => Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                    webBuilder.UseStartup<Startup>())
+                .ConfigureWebHostDefaults(webBuilder => webBuilder
+                    .UseStartup<Startup>()
+                    .UseNLogWeb()
+                )                                  
                 .Build();
     }
 }

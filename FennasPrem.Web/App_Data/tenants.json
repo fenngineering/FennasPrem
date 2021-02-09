@@ -1,4 +1,6 @@
 {
-  "Default": {},
-  "HotTubWizards": {}
+  "GoSqlBlog": {
+    "Identifier": "4sgbzn5hj8zdx2p8akfxs5234z",
+    "RequestUrlPrefix": "gosqlblog"
+  }
 }
