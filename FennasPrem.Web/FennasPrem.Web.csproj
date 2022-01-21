@@ -11,7 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="5.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="5.0.2" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.8" />
-    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="1.0.0-rc2-13450" />
+    <PackageReference Include="OrchardCore.Application.Cms.Targets" Version="1.2.2" />
     <PackageReference Include="OrchardCore.Logging.NLog" Version="1.0.0-rc2-13450" />
   </ItemGroup>
 
